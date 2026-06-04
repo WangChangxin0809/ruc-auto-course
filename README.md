@@ -27,13 +27,43 @@ Python 3.8+ + `uv` + `requests`。也可以用传统 `pip install -r requirement
 
 ### 2. 获取凭据
 
-1. 浏览器打开 [https://jw.ruc.edu.cn](https://jw.ruc.edu.cn)，用学号+密码登录
-2. 按 `F12` 打开开发者工具 → **Application**（应用程序）
-3. 左侧 `Storage → Cookies → https://jw.ruc.edu.cn`
-4. 找到 `EL-ADMIN-TOEKN`，复制它的值（这就是 JWT Token）
-5. 复制完整的 Cookie 行（包含 `access_token`、`SESSION`、`EL-ADMIN-TOEKN`）
+登录教务系统后，需要从浏览器中提取 **3 个值**：`EL-ADMIN-TOEKN`（JWT Token）、`access_token` 和 `SESSION`。
 
-> ⚠️ JWT 有效期约 4 小时，过期需重新获取。也可以直接在 Network 面板抓任意 API 请求的 `Authorization` header 和 `Cookie`。
+#### 方法 A: Application 面板（推荐）
+
+1. 浏览器打开 [https://jw.ruc.edu.cn](https://jw.ruc.edu.cn)，用学号+密码+验证码登录
+2. 按 `F12` 打开开发者工具
+3. 点击顶部 **Application** 标签（中文版叫 **应用**）
+   - 如果标签栏没显示，点最右边的 `>>` 就能找到
+4. 左侧面板展开：**Storage**（存储）→ **Cookies** → **https://jw.ruc.edu.cn**
+5. 你会看到很多行，找到以下 3 个，双击 Value 列复制：
+
+   | Cookie 名 | 说明 |
+   |-----------|------|
+   | `EL-ADMIN-TOEKN` | JWT Token（最长的那个，~200字符） |
+   | `access_token` | 访问令牌（约 22 字符） |
+   | `SESSION` | 会话 ID（UUID 格式） |
+
+   > 不需要：`authcode`（学号明文）、`token`（空值）
+
+#### 方法 B: Network 面板（更简单）
+
+1. 登录后，在页面上随便点击一个菜单（比如「已选课程」）
+2. `F12` → **Network**（网络）标签
+3. 左侧会出现很多请求，随便点一个
+4. 右侧找到 **Request Headers**（请求标头），找到 `Cookie:` 那一行
+5. 整行复制，把值填入 `config.json` 的 `cookie` 字段
+6. 再从 Cookie 行里提取 `EL-ADMIN-TOEKN` 的值，单独填入 `token` 字段
+
+#### 组装 Cookie
+
+把 3 个值拼成一行，格式如下：
+
+```
+access_token=你复制的值; SESSION=你复制的值; EL-ADMIN-TOEKN=你复制的值
+```
+
+> ⚠️ JWT 有效期约 4 小时，过期需重新登录获取。
 
 ### 3. 配置
 
