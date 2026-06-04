@@ -172,6 +172,17 @@ def do_select(crs_id, class_no, name):
     return False
 
 
+def do_drop(crs_stu_id, class_no, name):
+    """退课: deleteStuCourseInfo (text/plain + crs_stu_id, 不是 crs_id!)"""
+    print(f"    退课 -> [{class_no}] crs_stu_id={crs_stu_id}")
+    resp = post_text(APIS["deleteStuCourseInfo"], crs_stu_id)
+    if resp and resp.status_code == 200:
+        print(f"    >>> 退课成功! [{class_no}] {name}")
+        return True
+    ok(resp)
+    return False
+
+
 # ========== 主循环 ==========
 print("=" * 60)
 print("人大暑期学校自动选课 — 轮询模式 (每 2 秒)")
