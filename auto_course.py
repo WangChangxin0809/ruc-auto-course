@@ -2,7 +2,7 @@
 """
 人大暑期学校自动选课脚本 (Inner路径: dicStuType=1 校内学生)
 
-每 2 秒轮询可选课程，发现有余额的课程后按检查链执行选课。
+每 30 秒轮询可选课程，发现有余额的课程后按检查链执行选课。
 每轮自动重载 config.json → 改 blacklist/targets 无需重启。
 
 特性:
@@ -27,7 +27,9 @@ import time
 import os
 from datetime import datetime, timezone, timedelta
 
-sys.stdout.reconfigure(encoding="utf-8")
+# 确保 stdout 使用 UTF-8 (Windows 下 GBK 会导致中文乱码)
+# sys.stdout.reconfigure 从 Python 3.7 起可用，但 Pylance stub 不识别
+sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
 
 # ========== 日志双写 (屏幕 + 文件) ==========
 LOG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "auto_course.log")
@@ -185,7 +187,7 @@ def do_drop(crs_stu_id, class_no, name):
 
 # ========== 主循环 ==========
 print("=" * 60)
-print("人大暑期学校自动选课 — 轮询模式 (每 2 秒)")
+print("人大暑期学校自动选课 — 轮询模式 (每 30 秒)")
 print(f"启动时间: {datetime.now(TZ).strftime('%Y-%m-%d %H:%M:%S')}")
 print(f"每轮自动重载 {CONFIG_FILE} — 改 blacklist/targets 无需重启")
 print(f"时间冲突的课程会自动加入黑名单")
@@ -238,8 +240,8 @@ while True:
     })
 
     if not resp or resp.status_code != 200:
-        print(f"  查询可选课程列表失败，等待 2 秒...")
-        time.sleep(2)
+        print(f"  查询可选课程列表失败，等待 30 秒...")
+        time.sleep(30)
         continue
 
     all_courses = resp.json().get("items", [])
@@ -262,15 +264,15 @@ while True:
                   f" | crs_id={c['crs_id']}")
 
     if not candidates:
-        print(f"  无候选课程，{ts()} 等待 2 秒...")
-        time.sleep(2)
+        print(f"  无候选课程，{ts()} 等待 30 秒...")
+        time.sleep(30)
         continue
 
     # ── 3. 已满则跳过 ──
     if enrolled_count >= 2:
         print(f"  已选 {enrolled_count} 门 (上限 2)，需手动退课才能选新课")
-        print(f"  {ts()} 等待 2 秒...")
-        time.sleep(2)
+        print(f"  {ts()} 等待 30 秒...")
+        time.sleep(30)
         continue
 
     # ── 4. 排序: targets优先 → 按名额倒序 ──
@@ -314,7 +316,7 @@ while True:
             print(f"  [{class_no}] 选课提交未成功，尝试下一个候选...")
 
     if not selected:
-        print(f"  所有候选均失败，{ts()} 等待 2 秒...")
+        print(f"  所有候选均失败，{ts()} 等待 30 秒...")
 
     print(f"  {ts()} 继续监听...")
-    time.sleep(2)
+    time.sleep(30)
