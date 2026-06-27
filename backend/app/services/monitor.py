@@ -36,47 +36,26 @@ async def _poll_student(db: Session, student: Student):
     """对单个学生执行一次轮询"""
     student_id = student.student_id
 
-    # 检查 token 是否过期
-    # token 过期检查
-    now_naive = now()
-    if student.token_expires_at and student.token_expires_at < now_naive:
-        print(f"[monitor] token 过期，重新登录 {student_id}")
-        password = decrypt_password(student.password)
-        result = do_login(student_id, password)
-        if not result:
-            print(f"[monitor] 重登失败 {student_id}")
-            return
-        student.res_token = result["resToken"]
-        student.session = result["session"]
-        student.authcode = result["authcode"]
-        student.token_expires_at = result["token_expires_at"]
-        student.name = result.get("name", result["authcode"])
-        student.major = result.get("major", student.major or "")
-        student.grade = result.get("grade", student.grade or "")
-        db.commit()
+    # 每次都重新登录获取新 token（适用于长间隔轮询）
+    password = decrypt_password(student.password)
+    result = do_login(student_id, password)
+    if not result:
+        print(f"[monitor] 登录失败，跳过本轮 {student_id}")
+        return
+    student.res_token = result["resToken"]
+    student.session = result["session"]
+    student.authcode = result["authcode"]
+    student.token_expires_at = result["token_expires_at"]
+    student.name = result.get("name", result["authcode"])
+    student.major = result.get("major", student.major or "")
+    student.grade = result.get("grade", student.grade or "")
+    db.commit()
 
     # 拉取成绩
     raw = fetch_grades_from_api(student.res_token, student.session, student.authcode)
     if raw is None:
-        # token 可能提前过期，尝试重新登录后重试一次
-        print(f"[monitor] 拉取失败，尝试重登 {student_id}")
-        password = decrypt_password(student.password)
-        result = do_login(student_id, password)
-        if not result:
-            print(f"[monitor] 重登失败，跳过本轮 {student_id}")
-            return
-        student.res_token = result["resToken"]
-        student.session = result["session"]
-        student.authcode = result["authcode"]
-        student.token_expires_at = result["token_expires_at"]
-        student.name = result.get("name", result["authcode"])
-        student.major = result.get("major", student.major or "")
-        student.grade = result.get("grade", student.grade or "")
-        db.commit()
-        raw = fetch_grades_from_api(student.res_token, student.session, student.authcode)
-        if raw is None:
-            print(f"[monitor] 重试仍失败 {student_id}")
-            return
+        print(f"[monitor] 拉取成绩失败 {student_id}")
+        return
 
     # 同步 + 比对
     result = sync_grades(db, student, raw)
