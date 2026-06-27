@@ -58,7 +58,11 @@ onMounted(load)
         </div>
         <div class="field">
           <label>发件邮箱</label>
-          <input v-model="form.fromAddress" placeholder="123@qq.com" />
+          <input v-model="form.fromAddress" placeholder="123@qq.com" @change="form.smtpUsername = form.fromAddress" />
+        </div>
+        <div class="field">
+          <label>登录账号</label>
+          <input v-model="form.smtpUsername" placeholder="同发件邮箱" />
         </div>
         <div class="field">
           <label>授权码</label>

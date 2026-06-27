@@ -5,15 +5,11 @@ services:
     volumes:
       - db_data:/app/data
       - ./backend/app:/app/app
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=sqlite:////app/data/grades.db
       - POLL_INTERVAL=30
-      - CIPHER_KEY=Z3JhZGVfbW9uaXRvcl9zZWNyZXRfa2V5XzIwMjU=
-      - SMTP_HOST=smtp.qq.com
-      - SMTP_PORT=587
-      - SMTP_USERNAME=2211399628@qq.com
-      - SMTP_PASSWORD=wbnzegvuvnpbeaad
-      - SMTP_FROM=2211399628@qq.com
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     restart: unless-stopped
 

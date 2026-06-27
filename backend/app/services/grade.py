@@ -109,7 +109,8 @@ def sync_grades(db: Session, student: Student, raw_grades: list[dict]) -> dict:
         if cjfscode == "3":
             score = item.get("zcjname1") or item.get("cjxm3") or "P"
         else:
-            score = item.get("zcj") or "-"
+            raw_score = item.get("zcj")
+            score = str(raw_score) if raw_score is not None else "-"
         gp = float(item.get("jd", 0) or 0)
 
         if cjgl016id in existing_map:

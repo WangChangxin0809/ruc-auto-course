@@ -19,8 +19,10 @@ async function load() {
     const [s, st] = await Promise.all([listStudents(), getMonitorStatus()])
     students.value = s
     status.value = st
+    pollInterval.value = st.poll_interval || 30
   } catch (e) {
     console.error(e)
+    students.value = []
   }
   loading.value = false
 }
@@ -55,8 +57,12 @@ async function handleToggleStudent(studentId: string) {
 
 async function removeStudent(id: string) {
   if (!confirm('确定删除该学生？此操作不可恢复。')) return
-  await deleteStudent(id)
-  await load()
+  try {
+    await deleteStudent(id)
+    await load()
+  } catch (e: any) {
+    alert('删除失败: ' + (e.response?.data?.detail || e.message))
+  }
 }
 
 function onAdded() {

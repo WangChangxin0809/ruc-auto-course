@@ -41,10 +41,10 @@ const semester = computed(() => props.grades[0]?.semester || '')
           <tr
             v-for="g in grades"
             :key="g.cjgl016id"
-            :class="{ 'row-new': newIds.includes(g.cjgl016id) || g.is_new, 'row-pf': g.cjfscode === '3' }"
+            :class="{ 'row-new': newIds.includes(g.cjgl016id), 'row-pf': g.cjfscode === '3' }"
           >
             <td class="cell-name">
-              <span v-if="newIds.includes(g.cjgl016id) || g.is_new" class="new-dot" title="新增成绩">●</span>
+              <span v-if="newIds.includes(g.cjgl016id)" class="new-dot" title="新增成绩">●</span>
               {{ g.course_name }}
             </td>
             <td>{{ g.teacher }}</td>

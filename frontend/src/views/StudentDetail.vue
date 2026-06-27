@@ -38,9 +38,11 @@ async function refresh() {
     result.value = await refreshGrades(props.id)
     const g = await getGrades(props.id)
     grades.value = g
+    let retried = false
   } catch (e: any) {
-    if (e.response?.status === 502) {
-      await reloginStudent(props.id)
+    if (e.response?.status === 502 && !retried) {
+      retried = true
+      try { await reloginStudent(props.id) } catch (_) { /* ignore relogin errors */ }
       await refresh()
     } else {
       alert('刷新失败: ' + (e.response?.data?.detail || e.message))
@@ -68,6 +70,11 @@ onMounted(load)
     <main class="detail-main">
       <div v-if="loading" class="state-box">
         <div class="spinner"></div>
+      </div>
+
+      <div v-else-if="!student" class="state-box empty-state">
+        <p>无法加载学生信息</p>
+        <button class="btn-back" @click="router.push('/')">← 返回首页</button>
       </div>
 
       <template v-else-if="student">
@@ -99,7 +106,7 @@ onMounted(load)
         </div>
 
         <!-- Grade Table -->
-        <GradeTable :grades="grades" :newIds="result?.new_grades.map(g => g.cjgl016id) || []" />
+        <GradeTable :grades="grades" :newIds="result?.new_grades?.map(g => g.cjgl016id) || []" />
       </template>
     </main>
   </div>
