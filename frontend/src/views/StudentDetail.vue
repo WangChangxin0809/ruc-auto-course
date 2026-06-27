@@ -21,6 +21,8 @@ const semesters = computed(() => {
 
 async function load() {
   loading.value = true
+  student.value = null
+  grades.value = []
   try {
     const [s, g] = await Promise.all([getStudent(props.id), getGrades(props.id)])
     student.value = s

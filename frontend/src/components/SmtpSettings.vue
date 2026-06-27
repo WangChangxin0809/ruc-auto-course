@@ -25,11 +25,11 @@ async function save() {
   saving.value = true
   msg.value = ''
   try {
-    // 不发送脱敏占位符，避免覆盖真实密码
+    // 发送所有字段（含空值可清空），脱敏密码除外
     const data: Record<string, string> = {}
     for (const [k, v] of Object.entries(form.value)) {
       if (k === 'smtpPassword' && v && v.includes('****')) continue
-      if (v) data[k] = v
+      data[k] = v || ''
     }
     const params = new URLSearchParams(data).toString()
     await axios.put(`/api/settings/smtp?${params}`)

@@ -49,15 +49,14 @@ def set_smtp(
         "fromAddress": fromAddress,
     }
     for k, v in updates.items():
-        if v:
-            # 跳过脱敏占位符，避免覆盖真实密码
-            if k == "smtpPassword" and "****" in v:
-                continue
-            s = db.query(Setting).filter(Setting.key == k).first()
-            if s:
-                s.value = v
-            else:
-                db.add(Setting(key=k, value=v))
+        # 跳过脱敏占位符，避免覆盖真实密码
+        if k == "smtpPassword" and v and "****" in v:
+            continue
+        s = db.query(Setting).filter(Setting.key == k).first()
+        if s:
+            s.value = v
+        elif v:  # 空值不创建新记录
+            db.add(Setting(key=k, value=v))
     db.commit()
     reload_email_config()
     masked = {k: (v[:2] + "****" if k == "smtpPassword" and v else (v or "(未设置)")) for k, v in updates.items()}
