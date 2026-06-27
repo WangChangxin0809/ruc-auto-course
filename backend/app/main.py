@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="RUC 成绩监控", version="1.0.0", lifespan=lifespan)
+app = FastAPI(title="RUC Helper", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

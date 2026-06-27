@@ -79,7 +79,7 @@ onMounted(load)
       <div class="topbar-inner">
         <div class="brand">
           <span class="brand-icon">◈</span>
-          <h1>RUC 成绩监控</h1>
+          <h1>RUC Helper</h1>
         </div>
 
         <div class="topbar-controls">

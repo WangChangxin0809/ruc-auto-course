@@ -1,7 +1,7 @@
 [project]
-name = "ruc-auto-course"
+name = "ruc-helper"
 version = "1.0.0"
-description = "人大暑期学校自动选课脚本 — RUC ISS auto course selector"
+description = "人大教务系统助手 — 成绩监控 / 自动选课 / Token 管理"
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [

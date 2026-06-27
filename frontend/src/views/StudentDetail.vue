@@ -79,7 +79,7 @@ watch(() => props.id, () => { load() })
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           返回
         </button>
-        <div class="brand-sm">◈ RUC 成绩监控</div>
+        <div class="brand-sm">◈ RUC Helper</div>
       </div>
     </header>
 
