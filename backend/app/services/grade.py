@@ -98,7 +98,9 @@ def sync_grades(db: Session, student: Student, raw_grades: list[dict]) -> dict:
 
     for item in raw_grades:
         cjgl016id = item.get("cjgl016id", "")
-        if not cjgl016id:
+        course_name = item.get("kcname")
+        # 跳过空记录（无 ID 或无课程名）
+        if not cjgl016id or not course_name:
             continue
         current_ids.add(cjgl016id)
 
