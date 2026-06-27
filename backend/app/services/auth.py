@@ -18,11 +18,10 @@ LOGIN_HEADERS = {
 TZ = timezone(timedelta(hours=8))
 
 # 简单密码加密（生产环境应使用环境变量注入的密钥）
-_cipher_key = os.getenv("CIPHER_KEY", Fernet.generate_key().decode()).encode()
-try:
-    _cipher = Fernet(_cipher_key)
-except Exception:
-    _cipher = Fernet(Fernet.generate_key())
+_cipher_key_raw = os.getenv("CIPHER_KEY", "")
+if not _cipher_key_raw:
+    raise RuntimeError("CIPHER_KEY 环境变量未设置！请创建 .env 文件并设置 CIPHER_KEY。参考 .env.example。")
+_cipher = Fernet(_cipher_key_raw.encode())
 
 
 def encrypt_password(password: str) -> str:

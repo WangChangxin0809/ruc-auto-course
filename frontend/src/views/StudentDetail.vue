@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getStudent, getGrades, refreshGrades, reloginStudent } from '../api'
 import type { Student, GradeItem, GradeRefreshResult } from '../types'
@@ -40,6 +40,7 @@ async function refresh() {
     result.value = await refreshGrades(props.id)
     const g = await getGrades(props.id)
     grades.value = g
+    refreshRetried = false
   } catch (e: any) {
     if (e.response?.status === 502 && !refreshRetried) {
       refreshRetried = true
@@ -55,6 +56,7 @@ async function refresh() {
 function doPrint() { window.print() }
 
 onMounted(load)
+watch(() => props.id, () => { load() })
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { listStudents, deleteStudent, getMonitorStatus, startMonitor, stopMonitor, toggleMonitorStudent, testEmailStudent, setMonitorConfig } from '../api'
+import { listStudents, deleteStudent, getMonitorStatus, startMonitor, stopMonitor, toggleMonitorStudent, testEmailStudent } from '../api'
 import type { Student, MonitorStatus } from '../types'
 import StudentCard from '../components/StudentCard.vue'
 import AddStudentDialog from '../components/AddStudentDialog.vue'
@@ -31,7 +31,6 @@ async function toggleMonitor() {
   if (status.value.running) {
     await stopMonitor()
   } else {
-    await setMonitorConfig('', pollInterval.value)
     await startMonitor(pollInterval.value)
   }
   const st = await getMonitorStatus()

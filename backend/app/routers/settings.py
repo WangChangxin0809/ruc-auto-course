@@ -50,6 +50,9 @@ def set_smtp(
     }
     for k, v in updates.items():
         if v:
+            # 跳过脱敏占位符，避免覆盖真实密码
+            if k == "smtpPassword" and "****" in v:
+                continue
             s = db.query(Setting).filter(Setting.key == k).first()
             if s:
                 s.value = v
