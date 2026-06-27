@@ -50,11 +50,9 @@ async def _poll_student(db: Session, student: Student):
         student.session = result["session"]
         student.authcode = result["authcode"]
         student.token_expires_at = result["token_expires_at"]
-        if not student.name:
-            student.name = result["authcode"]
-        db.commit()
-        if not student.name:
-            student.name = result["authcode"]
+        student.name = result.get("name", result["authcode"])
+        student.major = result.get("major", student.major or "")
+        student.grade = result.get("grade", student.grade or "")
         db.commit()
 
     # 拉取成绩
