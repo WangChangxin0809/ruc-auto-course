@@ -36,11 +36,11 @@ let refreshRetried = false
 async function refresh() {
   refreshing.value = true
   result.value = null
+  refreshRetried = false
   try {
     result.value = await refreshGrades(props.id)
     const g = await getGrades(props.id)
     grades.value = g
-    refreshRetried = false
   } catch (e: any) {
     if (e.response?.status === 502 && !refreshRetried) {
       refreshRetried = true

@@ -1,6 +1,6 @@
 import json
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -39,9 +39,10 @@ class Grade(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     student_id = Column(String(20), ForeignKey("students.student_id", ondelete="CASCADE"), nullable=False, index=True)
-    cjgl016id = Column(String(50), nullable=False, unique=True)
+    cjgl016id = Column(String(50), nullable=False)
     course_code = Column(String(50), default="")
     course_name = Column(String(200), default="")
+    __table_args__ = (UniqueConstraint("student_id", "cjgl016id", name="uq_student_grade"),)
     score = Column(String(20), default="")
     daily_score = Column(String(20), default="")
     midterm_score = Column(String(20), default="")

@@ -115,12 +115,29 @@ def sync_grades(db: Session, student: Student, raw_grades: list[dict]) -> dict:
 
         if cjgl016id in existing_map:
             grade_obj = existing_map[cjgl016id]
-            old_score = grade_obj.score
-            old_gp = grade_obj.grade_point
+            new_score = str(score)
+            new_daily = str(item.get("cjxm1") or "")
+            new_mid = str(item.get("cjxm2") or "")
+            new_final = str(item.get("cjxm3") or "")
+            new_teacher = item.get("jsname") or ""
 
-            if old_score != str(score) or old_gp != gp:
-                grade_obj.score = str(score)
+            changed = (
+                grade_obj.score != new_score
+                or grade_obj.grade_point != gp
+                or grade_obj.daily_score != new_daily
+                or grade_obj.midterm_score != new_mid
+                or grade_obj.final_score != new_final
+                or grade_obj.teacher != new_teacher
+            )
+            if changed:
+                grade_obj.score = new_score
                 grade_obj.grade_point = gp
+                grade_obj.daily_score = new_daily
+                grade_obj.midterm_score = new_mid
+                grade_obj.final_score = new_final
+                grade_obj.teacher = new_teacher
+                grade_obj.category = item.get("kclbname") or item.get("kcxzname") or grade_obj.category
+                grade_obj.grade_note = str(item.get("cjbzname") or "")
                 grade_obj.last_updated_at = now()
                 updated_grades.append(grade_obj)
         else:
