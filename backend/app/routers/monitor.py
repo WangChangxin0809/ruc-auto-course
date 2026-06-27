@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Student, NotificationLog, MonitorLog
 from ..schemas import MonitorStatus, MonitorHistoryItem, MessageResponse
-from ..services.monitor import start_monitor, stop_monitor, is_running, get_poll_interval, set_poll_interval
+from ..services.monitor import start_monitor, stop_monitor, is_running, get_poll_interval, set_poll_interval, set_heartbeat_email, get_heartbeat_email
 
 router = APIRouter(prefix="/api/monitor", tags=["monitor"])
 
@@ -40,14 +40,21 @@ async def stop():
 
 @router.get("/config", response_model=dict)
 async def get_config():
-    return {"pollInterval": get_poll_interval()}
+    return {"pollInterval": get_poll_interval(), "heartbeatEmail": get_heartbeat_email()}
 
 
 @router.post("/config", response_model=MessageResponse)
-async def set_config(poll_interval: int = 0):
+async def set_config(poll_interval: int = 0, heartbeat_email: str = ""):
     if poll_interval > 0:
         set_poll_interval(poll_interval)
-    return MessageResponse(message=f"轮询间隔已更新: {poll_interval}s")
+    if heartbeat_email:
+        set_heartbeat_email(heartbeat_email)
+    parts = []
+    if poll_interval > 0:
+        parts.append(f"轮询: {poll_interval}s")
+    if heartbeat_email:
+        parts.append(f"心跳邮箱: {heartbeat_email}")
+    return MessageResponse(message="已更新: " + ", ".join(parts))
 
 
 @router.get("/history", response_model=list[MonitorHistoryItem])

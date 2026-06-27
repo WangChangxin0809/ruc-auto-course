@@ -10,12 +10,15 @@ from sqlalchemy.orm import Session
 from ..database import SessionLocal
 from ..models import Student, NotificationLog, MonitorLog, now
 from .auth import do_login, decrypt_password
-from .grade import fetch_grades_from_api, sync_grades, send_grade_email
+from .grade import fetch_grades_from_api, sync_grades, send_grade_email, EMAIL_CONFIG
 
 TZ = timezone(timedelta(hours=8))
 
 _monitor_task: asyncio.Task | None = None
+_heartbeat_task: asyncio.Task | None = None
 _poll_interval: int = 30
+_heartbeat_interval: int = 5 * 3600  # 5 小时
+_heartbeat_email: str = ""
 
 
 def get_poll_interval() -> int:
@@ -125,25 +128,75 @@ async def _poll_loop():
         await asyncio.sleep(_poll_interval)
 
 
+async def _heartbeat_loop():
+    """心跳检测：每 5 小时发送监控总结邮件"""
+    global _heartbeat_interval, _heartbeat_email
+    await asyncio.sleep(60)  # 启动后等 1 分钟再发第一次
+    while True:
+        try:
+            db = SessionLocal()
+            students = db.query(Student).filter(Student.is_monitored == True).all()
+            if students and _heartbeat_email:
+                now_str = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
+                rows = ""
+                for s in students:
+                    from ..models import Grade as G
+                    count = db.query(G).filter(G.student_id == s.student_id).count()
+                    last_g = db.query(G).filter(G.student_id == s.student_id).order_by(G.last_updated_at.desc()).first()
+                    last_time = last_g.last_updated_at.strftime("%m/%d %H:%M") if last_g and last_g.last_updated_at else "-"
+                    rows += f"<tr><td style='padding:6px 10px;border-bottom:1px solid #eee'>{s.name or s.student_id}</td><td style='padding:6px 10px'>{s.student_id}</td><td style='text-align:center'>{count}</td><td style='text-align:center'>{last_time}</td></tr>"
+                body = f"""<div style='max-width:500px;font-family:sans-serif'>
+                    <h2>RUC Helper — 监控心跳</h2><p>{now_str}，监控正常运行中。</p>
+                    <p>监控间隔: {_poll_interval}s | 监控学生: {len(students)}人</p>
+                    <table style='width:100%;border-collapse:collapse;font-size:13px'>
+                    <tr style='background:#f8f8fb'><th style='padding:8px;text-align:left'>姓名</th><th>学号</th><th>成绩数</th><th>最近更新</th></tr>{rows}</table>
+                    <p style='margin-top:20px;font-size:12px;color:#999'>此邮件由 RUC Helper 自动发送，每 5 小时一次</p></div>"""
+                from email.mime.text import MIMEText
+                msg = MIMEText(body, "html", "utf-8")
+                msg["From"] = EMAIL_CONFIG["fromAddress"]
+                msg["To"] = _heartbeat_email
+                msg["Subject"] = f"[RUC Helper] 监控心跳 — {now_str}"
+                import smtplib
+                server = smtplib.SMTP(EMAIL_CONFIG["smtpHost"], EMAIL_CONFIG["smtpPort"], timeout=15)
+                server.starttls()
+                server.login(EMAIL_CONFIG["smtpUsername"], EMAIL_CONFIG["smtpPassword"])
+                server.sendmail(EMAIL_CONFIG["fromAddress"], [_heartbeat_email], msg.as_string())
+                server.quit()
+                print(f"[heartbeat] 已发送至 {_heartbeat_email}")
+            db.close()
+        except Exception as e:
+            print(f"[heartbeat] 异常: {e}")
+        await asyncio.sleep(_heartbeat_interval)
+
+
+def set_heartbeat_email(email: str):
+    global _heartbeat_email
+    _heartbeat_email = email
+
+
+def get_heartbeat_email() -> str:
+    return _heartbeat_email
+
+
 def start_monitor(poll_interval: int = 30):
-    """启动后台轮询任务"""
-    global _monitor_task, _poll_interval
-    _poll_interval = max(5, min(3600, poll_interval))  # 限制 5s ~ 1h
+    global _monitor_task, _heartbeat_task, _poll_interval
+    _poll_interval = max(5, min(3600, poll_interval))
 
     if _monitor_task and not _monitor_task.done():
         print("[monitor] 已在运行中")
         return False
 
     _monitor_task = asyncio.create_task(_poll_loop())
-    print("[monitor] 已启动")
+    _heartbeat_task = asyncio.create_task(_heartbeat_loop())
+    print("[monitor] 已启动 (含心跳)")
     return True
 
 
 def stop_monitor():
-    """停止后台轮询"""
-    global _monitor_task
+    global _monitor_task, _heartbeat_task
     if _monitor_task and not _monitor_task.done():
         _monitor_task.cancel()
-        print("[monitor] 已停止")
-        return True
-    return False
+    if _heartbeat_task and not _heartbeat_task.done():
+        _heartbeat_task.cancel()
+    print("[monitor] 已停止")
+    return (_monitor_task is not None) or (_heartbeat_task is not None)
