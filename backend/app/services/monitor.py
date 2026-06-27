@@ -16,7 +16,6 @@ TZ = timezone(timedelta(hours=8))
 
 _monitor_task: asyncio.Task | None = None
 _poll_interval: int = 30
-_global_email: str = ""
 
 
 def get_poll_interval() -> int:
@@ -133,12 +132,3 @@ def stop_monitor():
         print("[monitor] 已停止")
         return True
     return False
-
-
-def get_global_email() -> str:
-    return _global_email
-
-
-def set_global_email(email: str):
-    global _global_email
-    _global_email = email

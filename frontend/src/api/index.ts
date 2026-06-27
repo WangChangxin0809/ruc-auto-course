@@ -35,8 +35,6 @@ export const testEmailStudent = (id: string) =>
 export const updateStudentEmail = (id: string, email: string) =>
   api.put<Student>(`/students/${id}/email?email=${encodeURIComponent(email)}`).then(r => r.data)
 
-export const setMonitorConfig = (email: string, pollInterval: number) =>
-  api.post(`/monitor/config?email=${encodeURIComponent(email)}&poll_interval=${pollInterval}`).then(r => r.data)
 
 // Grades
 export const getGrades = (studentId: string) =>

@@ -44,23 +44,13 @@
 ### 快速启动
 
 ```bash
+cp .env.example .env       # 编辑 .env 填入 SMTP 配置
 docker compose up -d
 ```
 
-访问 http://localhost:8080
+访问 http://localhost:8080，在页面右上角齿轮图标配置 SMTP（或直接编辑 `.env` 文件）。
 
-### 配置
-
-编辑 `docker-compose.yml` 中的 SMTP 环境变量：
-
-```yaml
-environment:
-  SMTP_HOST: smtp.qq.com
-  SMTP_PORT: 587
-  SMTP_USERNAME: 你的邮箱@qq.com
-  SMTP_PASSWORD: QQ邮箱授权码
-  SMTP_FROM: 你的邮箱@qq.com
-```
+> 开发环境默认启动 Vite dev server（前端热更新），生产部署需另行构建静态文件。
 
 ## CLI 工具
 
