@@ -1,6 +1,7 @@
 """
 学生管理路由
 """
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -122,34 +123,57 @@ def toggle_monitor(student_id: str, db: Session = Depends(get_db)):
 
 @router.post("/{student_id}/test-email", response_model=MessageResponse)
 def test_email(student_id: str, db: Session = Depends(get_db)):
+    """完整测试：随机删一门成绩 → 拉取API → 检测新增 → 发送邮件"""
+    import random
+    from ..services.grade import fetch_grades_from_api, sync_grades, send_grade_email, EMAIL_CONFIG
+    from ..models import Grade
+
     s = db.query(Student).filter(Student.student_id == student_id).first()
     if not s:
         raise HTTPException(404, "学生不存在")
     if not s.email:
         raise HTTPException(400, "该学生未设置通知邮箱")
-
-    from ..services.grade import send_grade_email, EMAIL_CONFIG
-    from ..models import Grade
-
-    # 检查 SMTP 是否已配置
     if not EMAIL_CONFIG.get("smtpUsername"):
         raise HTTPException(400, "SMTP 未配置，请先在设置中配置发件邮箱")
 
-    # 构造一条明确的测试消息
-    from ..models import Grade as GradeModel
-    count = db.query(GradeModel).filter(GradeModel.student_id == student_id).count()
-    fake_test = [type('FakeGrade', (), {
-        'course_name': '【测试邮件】',
-        'score': '-',
-        'credit': 0,
-        'grade_point': 0,
-        'teacher': '系统',
-        'semester': f'当前已同步 {count} 门成绩',
-    })()]
-    ok = send_grade_email(s.email, s.name or student_id, fake_test, [])
-    if ok:
-        return MessageResponse(message=f"测试邮件已发送至 {s.email}")
-    raise HTTPException(500, "邮件发送失败，请检查 SMTP 配置")
+    # 1. 检查是否有成绩数据
+    existing = db.query(Grade).filter(Grade.student_id == student_id).all()
+    if not existing:
+        raise HTTPException(400, "测试失败：无可用成绩数据，请先刷新成绩")
+
+    # 2. 随机选一门删除
+    target = random.choice(existing)
+    deleted_name = target.course_name
+    db.delete(target)
+    db.commit()
+    print(f"[test-email] 已删除: {deleted_name}")
+
+    # 3. 拉取最新成绩并同步（会检测到被删的课为新增）
+    raw = fetch_grades_from_api(s.res_token, s.session, s.authcode)
+    if raw is None:
+        raise HTTPException(502, "测试失败：无法连接教务系统")
+
+    result = sync_grades(db, s, raw)
+    new_count = result["new_count"]
+    new_grades = result["new_grades"]
+
+    if new_count == 0:
+        raise HTTPException(500, f"测试失败：删除 {deleted_name} 后未检测到新增，请检查 API 数据")
+
+    # 4. 发送真实通知邮件
+    ok = send_grade_email(s.email, s.name or student_id, new_grades, [])
+    if not ok:
+        raise HTTPException(500, "测试失败：邮件发送失败")
+
+    # 5. 记录日志
+    from ..models import NotificationLog
+    grade_ids = [g.cjgl016id for g in new_grades]
+    db.add(NotificationLog(student_id=student_id, grade_ids=json.dumps(grade_ids), change_type="test"))
+    db.commit()
+
+    return MessageResponse(
+        message=f"测试通过！已删除「{deleted_name}」→ 检测到新增 {new_count} 门 → 邮件已发送至 {s.email}"
+    )
 
 
 @router.put("/{student_id}/email", response_model=StudentResponse)
