@@ -71,19 +71,22 @@ onMounted(load)
       </div>
 
       <template v-else-if="student">
-        <!-- Student Header -->
-        <div class="student-header">
-          <div class="header-left">
-            <h2>{{ student.name || student.student_id }}</h2>
-            <div class="header-meta">
-              <span class="meta-tag">学号 {{ student.student_id }}</span>
-              <span class="meta-tag" v-if="student.grade">年级 {{ student.grade }}</span>
-              <span class="meta-tag" v-if="student.major">{{ student.major }}</span>
-            </div>
-          </div>
-          <div class="header-right">
-            <span class="grade-count-badge">{{ grades.length }} 门成绩</span>
-            <button class="btn-refresh" :disabled="refreshing" @click="refresh">
+        <!-- Student Info Bar (matching real page) -->
+        <div class="student-info-bar">
+          <span>学号：<strong>{{ student.student_id }}</strong></span>
+          <span>姓名：<strong>{{ student.name || student.student_id }}</strong></span>
+          <span v-if="student.major">院系：<strong>{{ student.major }}</strong></span>
+          <span v-if="student.grade">年级：<strong>{{ student.grade }}</strong></span>
+          <button class="btn-print" @click="window.print()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 12H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            打印
+          </button>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+          <span class="grade-count-badge">{{ grades.length }} 门成绩</span>
+          <button class="btn-refresh" :disabled="refreshing" @click="refresh">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" :class="{ spinning: refreshing }"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               {{ refreshing ? '刷新中...' : '刷新成绩' }}
             </button>
@@ -156,38 +159,41 @@ onMounted(load)
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Student Header */
-.student-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-.header-left h2 {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--ink-900);
-  margin-bottom: 8px;
-}
-.header-meta {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.meta-tag {
-  font-size: 12px;
-  color: var(--ink-600);
+/* Student Info Bar */
+.student-info-bar {
   background: var(--white);
-  padding: 3px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--ink-100);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  color: var(--ink-600);
+  box-shadow: var(--shadow-sm);
 }
-.header-right {
+.student-info-bar strong {
+  color: var(--ink-900);
+}
+.btn-print {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--ink-900);
+  color: #fff;
+  padding: 5px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+/* Action Bar */
+.action-bar {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 16px;
 }
 .grade-count-badge {
   font-size: 14px;
