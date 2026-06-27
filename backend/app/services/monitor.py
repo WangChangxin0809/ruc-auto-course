@@ -139,17 +139,33 @@ async def _heartbeat_loop():
             if students and _heartbeat_email:
                 now_str = datetime.now(TZ).strftime("%Y-%m-%d %H:%M:%S")
                 rows = ""
+                total_polls = 0
                 for s in students:
                     from ..models import Grade as G
-                    count = db.query(G).filter(G.student_id == s.student_id).count()
+                    grade_count = db.query(G).filter(G.student_id == s.student_id).count()
+                    poll_count = db.query(MonitorLog).filter(MonitorLog.student_id == s.student_id, MonitorLog.status == "noop").count()
+                    poll_count += db.query(MonitorLog).filter(MonitorLog.student_id == s.student_id, MonitorLog.status == "ok").count()
+                    last_poll = db.query(MonitorLog).filter(MonitorLog.student_id == s.student_id).order_by(MonitorLog.id.desc()).first()
+                    last_poll_time = last_poll.created_at.strftime("%m/%d %H:%M") if last_poll and last_poll.created_at else "-"
                     last_g = db.query(G).filter(G.student_id == s.student_id).order_by(G.last_updated_at.desc()).first()
-                    last_time = last_g.last_updated_at.strftime("%m/%d %H:%M") if last_g and last_g.last_updated_at else "-"
-                    rows += f"<tr><td style='padding:6px 10px;border-bottom:1px solid #eee'>{s.name or s.student_id}</td><td style='padding:6px 10px'>{s.student_id}</td><td style='text-align:center'>{count}</td><td style='text-align:center'>{last_time}</td></tr>"
-                body = f"""<div style='max-width:500px;font-family:sans-serif'>
-                    <h2>RUC Helper — 监控心跳</h2><p>{now_str}，监控正常运行中。</p>
-                    <p>监控间隔: {_poll_interval}s | 监控学生: {len(students)}人</p>
+                    last_change = last_g.last_updated_at.strftime("%m/%d %H:%M") if last_g and last_g.last_updated_at else "-"
+                    total_polls += poll_count
+                    rows += f"""<tr>
+                        <td style='padding:6px 8px;border-bottom:1px solid #eee'>{s.name or s.student_id}</td>
+                        <td style='padding:6px 8px;border-bottom:1px solid #eee'>{s.student_id}</td>
+                        <td style='padding:6px 8px;border-bottom:1px solid #eee;text-align:center'>{grade_count}</td>
+                        <td style='padding:6px 8px;border-bottom:1px solid #eee;text-align:center'>{poll_count}</td>
+                        <td style='padding:6px 8px;border-bottom:1px solid #eee;text-align:center;font-size:12px'>{last_poll_time}</td>
+                        <td style='padding:6px 8px;border-bottom:1px solid #eee;text-align:center;font-size:12px'>{last_change}</td>
+                    </tr>"""
+                body = f"""<div style='max-width:650px;font-family:sans-serif'>
+                    <h2>📊 RUC Helper — 监控心跳</h2>
+                    <p>{now_str}，监控正常运行中。</p>
+                    <p>监控间隔: {_poll_interval}s | 监控学生: {len(students)}人 | 累计轮询: {total_polls}次</p>
                     <table style='width:100%;border-collapse:collapse;font-size:13px'>
-                    <tr style='background:#f8f8fb'><th style='padding:8px;text-align:left'>姓名</th><th>学号</th><th>成绩数</th><th>最近更新</th></tr>{rows}</table>
+                    <tr style='background:#f8f8fb'>
+                        <th style='padding:8px;text-align:left'>姓名</th><th>学号</th><th>成绩数</th><th>轮询次数</th><th>最近轮询</th><th>最近变动</th>
+                    </tr>{rows}</table>
                     <p style='margin-top:20px;font-size:12px;color:#999'>此邮件由 RUC Helper 自动发送，每 5 小时一次</p></div>"""
                 from email.mime.text import MIMEText
                 msg = MIMEText(body, "html", "utf-8")
