@@ -24,7 +24,11 @@ def get_smtp(db: Session = Depends(get_db)):
     result = {}
     for k, default in DEFAULT_SMTP.items():
         s = db.query(Setting).filter(Setting.key == k).first()
-        result[k] = s.value if s else default
+        val = s.value if s else default
+        # 密码脱敏
+        if k == "smtpPassword" and val:
+            val = val[:2] + "****" + val[-2:] if len(val) > 4 else "****"
+        result[k] = val
     return result
 
 
@@ -53,4 +57,5 @@ def set_smtp(
                 db.add(Setting(key=k, value=v))
     db.commit()
     reload_email_config()
-    return {"message": "SMTP 配置已更新", "config": {k: v or "(未设置)" for k, v in updates.items()}}
+    masked = {k: (v[:2] + "****" if k == "smtpPassword" and v else (v or "(未设置)")) for k, v in updates.items()}
+    return {"message": "SMTP 配置已更新", "config": masked}

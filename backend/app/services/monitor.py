@@ -67,18 +67,19 @@ def poll_student_sync(db: Session, student: Student) -> dict:
 
     print(f"[monitor] {student_id} 变化: 新增{new_count} 更新{updated_count}")
 
-    # 记录通知日志
-    grade_ids = [g.cjgl016id for g in sync_result["new_grades"] + sync_result["updated_grades"]]
-    if new_count:
-        db.add(NotificationLog(student_id=student_id, grade_ids=json.dumps(grade_ids), change_type="new"))
-    if updated_count:
-        db.add(NotificationLog(student_id=student_id, grade_ids=json.dumps(grade_ids), change_type="updated"))
-    db.commit()
-
-    # 发送邮件
+    # 先发送邮件，成功后再记录日志
+    email_sent = False
     if student.email:
-        send_grade_email(student.email, student.name or student_id,
-                         sync_result["new_grades"], sync_result["updated_grades"])
+        email_sent = send_grade_email(student.email, student.name or student_id,
+                                      sync_result["new_grades"], sync_result["updated_grades"])
+
+    if email_sent:
+        grade_ids = [g.cjgl016id for g in sync_result["new_grades"] + sync_result["updated_grades"]]
+        if new_count:
+            db.add(NotificationLog(student_id=student_id, grade_ids=json.dumps(grade_ids), change_type="new"))
+        if updated_count:
+            db.add(NotificationLog(student_id=student_id, grade_ids=json.dumps(grade_ids), change_type="updated"))
+        db.commit()
 
     return {"ok": True, "new": new_count, "updated": updated_count,
             "new_grades": sync_result["new_grades"], "updated_grades": sync_result["updated_grades"]}
@@ -112,7 +113,7 @@ async def _poll_loop():
 def start_monitor(poll_interval: int = 30):
     """启动后台轮询任务"""
     global _monitor_task, _poll_interval
-    _poll_interval = poll_interval
+    _poll_interval = max(5, min(3600, poll_interval))  # 限制 5s ~ 1h
 
     if _monitor_task and not _monitor_task.done():
         print("[monitor] 已在运行中")

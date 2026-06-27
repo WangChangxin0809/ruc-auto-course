@@ -142,24 +142,32 @@ def test_email(student_id: str, db: Session = Depends(get_db)):
     if not existing:
         raise HTTPException(400, "测试失败：无可用成绩数据，请先刷新成绩")
 
-    # 2. 随机选一门删除
+    # 2. 随机选一门临时删除
     target = random.choice(existing)
     deleted_name = target.course_name
     db.delete(target)
     db.commit()
 
-    # 3. 调用监控的轮询逻辑（登录→拉取→比对→发邮件）
-    result = poll_student_sync(db, s)
+    try:
+        # 3. 调用监控的轮询逻辑（登录→拉取→比对→发邮件）
+        result = poll_student_sync(db, s)
 
-    if not result["ok"]:
-        raise HTTPException(500, f"测试失败：{result['error']}")
+        if not result["ok"]:
+            db.rollback()
+            raise HTTPException(500, f"测试失败：{result['error']}（成绩已恢复）")
 
-    if result["new"] == 0:
-        raise HTTPException(500, f"测试失败：删除「{deleted_name}」后未检测到新增")
+        if result["new"] == 0:
+            db.rollback()
+            raise HTTPException(500, f"测试失败：删除「{deleted_name}」后未检测到新增（成绩已恢复）")
 
-    return MessageResponse(
-        message=f"测试通过！已删除「{deleted_name}」→ 检测到新增 {result['new']} 门 → 邮件已发送至 {s.email}"
-    )
+        return MessageResponse(
+            message=f"测试通过！临时删除「{deleted_name}」→ 检测到新增 {result['new']} 门 → 邮件已发送至 {s.email}"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"测试失败：{e}（成绩已恢复）")
 
 
 @router.put("/{student_id}/email", response_model=StudentResponse)

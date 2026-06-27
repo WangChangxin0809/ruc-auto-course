@@ -31,6 +31,8 @@ async function load() {
   loading.value = false
 }
 
+let refreshRetried = false
+
 async function refresh() {
   refreshing.value = true
   result.value = null
@@ -38,10 +40,9 @@ async function refresh() {
     result.value = await refreshGrades(props.id)
     const g = await getGrades(props.id)
     grades.value = g
-    let retried = false
   } catch (e: any) {
-    if (e.response?.status === 502 && !retried) {
-      retried = true
+    if (e.response?.status === 502 && !refreshRetried) {
+      refreshRetried = true
       try { await reloginStudent(props.id) } catch (_) { /* ignore relogin errors */ }
       await refresh()
     } else {
@@ -50,6 +51,8 @@ async function refresh() {
   }
   refreshing.value = false
 }
+
+function doPrint() { window.print() }
 
 onMounted(load)
 </script>
@@ -84,7 +87,7 @@ onMounted(load)
           <span>姓名：<strong>{{ student.name || student.student_id }}</strong></span>
           <span v-if="student.major">院系：<strong>{{ student.major }}</strong></span>
           <span v-if="student.grade">年级：<strong>{{ student.grade }}</strong></span>
-          <button class="btn-print" @click="window.print()">
+          <button class="btn-print" @click="doPrint">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 12H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             打印
           </button>

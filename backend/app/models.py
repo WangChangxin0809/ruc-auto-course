@@ -39,7 +39,7 @@ class Grade(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     student_id = Column(String(20), ForeignKey("students.student_id", ondelete="CASCADE"), nullable=False, index=True)
-    cjgl016id = Column(String(50), nullable=False)
+    cjgl016id = Column(String(50), nullable=False, unique=True)
     course_code = Column(String(50), default="")
     course_name = Column(String(200), default="")
     score = Column(String(20), default="")
