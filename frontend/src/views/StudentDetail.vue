@@ -91,7 +91,6 @@ onMounted(load)
               {{ refreshing ? '刷新中...' : '刷新成绩' }}
             </button>
           </div>
-        </div>
 
         <!-- Refresh Result Banner -->
         <div v-if="result" class="result-banner">
