@@ -31,26 +31,31 @@ async function load() {
   loading.value = false
 }
 
-let refreshRetried = false
+let _retryLeft = 1
 
 async function refresh() {
+  _retryLeft = 1
+  await _doRefresh()
+}
+
+async function _doRefresh() {
   refreshing.value = true
   result.value = null
-  refreshRetried = false
   try {
     result.value = await refreshGrades(props.id)
     const g = await getGrades(props.id)
     grades.value = g
   } catch (e: any) {
-    if (e.response?.status === 502 && !refreshRetried) {
-      refreshRetried = true
-      try { await reloginStudent(props.id) } catch (_) { /* ignore relogin errors */ }
-      await refresh()
-    } else {
-      alert('刷新失败: ' + (e.response?.data?.detail || e.message))
+    if (e.response?.status === 502 && _retryLeft > 0) {
+      _retryLeft--
+      try { await reloginStudent(props.id) } catch (_) { /* ignore */ }
+      await _doRefresh()
+      return
     }
+    alert('刷新失败: ' + (e.response?.data?.detail || e.message))
+  } finally {
+    refreshing.value = false
   }
-  refreshing.value = false
 }
 
 function doPrint() { window.print() }

@@ -25,12 +25,13 @@ async function save() {
   saving.value = true
   msg.value = ''
   try {
-    const data = { ...form.value }
     // 不发送脱敏占位符，避免覆盖真实密码
-    if (data.smtpPassword && data.smtpPassword.includes('****')) {
-      delete data.smtpPassword
+    const data: Record<string, string> = {}
+    for (const [k, v] of Object.entries(form.value)) {
+      if (k === 'smtpPassword' && v && v.includes('****')) continue
+      if (v) data[k] = v
     }
-    const params = new URLSearchParams(data as any).toString()
+    const params = new URLSearchParams(data).toString()
     await axios.put(`/api/settings/smtp?${params}`)
     msg.value = '已保存'
   } catch (e: any) {
